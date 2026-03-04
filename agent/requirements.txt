@@ -4,3 +4,5 @@ langchain-core
 pydantic
 typing-extensions
 pytest
+openai
+python-dotenv

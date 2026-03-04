@@ -30,3 +30,4 @@ class ResearchState(TypedDict):
     final_report: Optional[ReportModel] = None
     iteration_count: int = 0
     query_complexity: Literal["simple", "complex"] = "simple"
+    reasoning: str = ""
