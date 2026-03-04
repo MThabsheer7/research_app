@@ -4,6 +4,7 @@ from agent.graph.nodes.planner import planner_node, route_planner
 from agent.graph.nodes.decomposer import decomposer_node
 from agent.graph.nodes.context_enhancer import context_enhancer_node
 from agent.graph.nodes.synthesizer import synthesizer_node, route_synthesizer
+from agent.graph.edges import dispatch_searchers
 
 MAX_ITERATIONS = 5
 
@@ -25,7 +26,8 @@ research_graph.add_conditional_edges(
         "simple": "synthesizer"
     }
 )
-research_graph.add_edge("decomposer", "context_enhancer")
+# Fan-out: one context_enhancer per subquestion, dispatched via Send()
+research_graph.add_conditional_edges("decomposer", dispatch_searchers, ["context_enhancer"])
 research_graph.add_edge("context_enhancer", "synthesizer")
 research_graph.add_conditional_edges(
     "synthesizer",

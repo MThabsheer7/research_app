@@ -16,19 +16,19 @@ class TestSearchResultModel:
         model = SearchResultModel(
             query="What is AlphaFold?",
             result=["chunk 1", "chunk 2"],
-            source_url="https://example.com"
+            source_urls=["https://example.com/1", "https://example.com/2"]
         )
         assert model.query == "What is AlphaFold?"
         assert len(model.result) == 2
-        assert model.source_url == "https://example.com"
+        assert len(model.source_urls) == 2
 
     def test_result_is_list_of_strings(self):
-        model = SearchResultModel(query="q", result=["a", "b", "c"], source_url="http://x.com")
+        model = SearchResultModel(query="q", result=["a", "b", "c"], source_urls=["http://x.com"] * 3)
         assert all(isinstance(r, str) for r in model.result)
 
     def test_missing_field_raises(self):
         with pytest.raises(Exception):
-            SearchResultModel(query="q", result=[])  # missing source_url
+            SearchResultModel(query="q", result=[])  # missing source_urls
 
 
 class TestFailedTaskModel:
@@ -66,8 +66,8 @@ class TestResearchStateDefaults:
     def test_search_results_reducer_combines_lists(self):
         """operator.add should merge two lists — verify manually."""
         import operator
-        a = [SearchResultModel(query="q1", result=["r1"], source_url="http://a.com")]
-        b = [SearchResultModel(query="q2", result=["r2"], source_url="http://b.com")]
+        a = [SearchResultModel(query="q1", result=["r1"], source_urls=["http://a.com"])]
+        b = [SearchResultModel(query="q2", result=["r2"], source_urls=["http://b.com"])]
         merged = operator.add(a, b)
         assert len(merged) == 2
         assert merged[0].query == "q1"

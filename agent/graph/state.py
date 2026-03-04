@@ -6,8 +6,8 @@ from typing import Annotated, Optional, List, Literal
 # Pydantic Models
 class SearchResultModel(BaseModel):
     query: str
-    result: List[str]
-    source_url: str
+    result: List[str]         # top-k text chunks
+    source_urls: List[str]    # one URL per chunk (parallel to result list)
 
 class FailedTaskModel(BaseModel):
     query: str
