@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from api.routes.research import router as research_router
+from api.routes.ws import router as ws_router
 
 app = FastAPI(
     title="Research Agent API",
@@ -14,13 +15,15 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],        # tighten in production
+    allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Routers after middleware
 app.include_router(research_router, prefix="/api/v1", tags=["research"])
-
+app.include_router(ws_router, tags=["websocket"])
 
 @app.get("/", include_in_schema=False)
 async def root():

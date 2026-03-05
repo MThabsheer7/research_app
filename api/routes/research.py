@@ -51,7 +51,7 @@ async def get_research(thread_id: str):
     Retrieve the result of a past research run by its thread_id.
     Results are read directly from the SQLite checkpoint — no re-processing.
     """
-    state = get_research_state(thread_id)
+    state = await get_research_state(thread_id)
     if state is None:
         raise HTTPException(status_code=404, detail=f"No research found for thread_id: {thread_id}")
 

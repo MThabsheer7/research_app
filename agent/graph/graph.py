@@ -6,9 +6,7 @@ from agent.graph.nodes.context_enhancer import context_enhancer_node
 from agent.graph.nodes.synthesizer import synthesizer_node, route_synthesizer
 from agent.graph.edges import dispatch_searchers
 
-import os
-import sqlite3
-from langgraph.checkpoint.sqlite import SqliteSaver
+
 
 MAX_ITERATIONS = 5
 
@@ -42,13 +40,6 @@ research_graph.add_conditional_edges(
     }
 )
 
-# ── Persistence ───────────────────────────────────────────────────────────────
-# SqliteSaver writes a checkpoint after every node completes.
-# check_same_thread=False is required for use across FastAPI request threads.
-_DB_PATH = os.environ.get("CHECKPOINT_DB", "data/checkpoints.db")
-os.makedirs(os.path.dirname(_DB_PATH), exist_ok=True)
-_conn = sqlite3.connect(_DB_PATH, check_same_thread=False)
-_checkpointer = SqliteSaver(_conn)
-
-# Compile the graph with the SQLite checkpointer
-research_app = research_graph.compile(checkpointer=_checkpointer)
+# Compile the graph without checkpointer for static use. 
+# We will inject AsyncSqliteSaver dynamically at runtime in the API layer.
+research_app = research_graph.compile()
