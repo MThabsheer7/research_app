@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from typing import Optional
 
 
 class ResearchRequest(BaseModel):
@@ -12,10 +11,11 @@ class CitedSentenceResponse(BaseModel):
 
 
 class ResearchResponse(BaseModel):
+    thread_id: str                          # use this to retrieve results later
     query: str
     query_complexity: str
     subquestions: list[str]
     summary: str
     sentences: list[CitedSentenceResponse]
-    failed_tasks: int          # count of failed searches
+    failed_tasks: int                       # count of failed searches
     iteration_count: int
