@@ -115,11 +115,20 @@ def _build_citation_map_and_context(search_results) -> tuple[dict[int, str], str
 def synthesizer_node(state: ResearchState) -> dict:
     search_results = state["search_results"]
 
-    # Simple query path — no search results, return minimal report
+    # Simple query path — no search results, we answer directly from LLM knowledge
     if not search_results:
+        response = llm_client.chat.completions.create(
+            model=LLM_MODEL,
+            messages=[
+                {"role": "system", "content": "You are an expert AI assistant. Please provide a clear, direct, and comprehensive answer to the user's query."},
+                {"role": "user", "content": state["user_input"]}
+            ],
+            max_tokens=1024,
+        )
+        answer = response.choices[0].message.content
         return {
             "final_report": ReportModel(
-                summary=f"Direct answer to: {state['user_input']}",
+                summary=answer,
                 sentences=[]
             ),
             "iteration_count": state["iteration_count"] + 1,

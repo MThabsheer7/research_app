@@ -146,13 +146,20 @@ class TestSynthesizerNode:
                 assert isinstance(s, SentenceModel)
 
     def test_simple_query_no_search_results(self):
-        """With empty search_results (simple query), must return without LLM call."""
-        simple_state = {**BASE_STATE, "search_results": [], "subquestions": []}
-        with patch(PATCH_TARGET) as mock_parse:
-            result = synthesizer_node(simple_state)
-            mock_parse.assert_not_called()
-            assert "final_report" in result
-            assert result["iteration_count"] == simple_state["iteration_count"] + 1
+        """With empty search_results (simple query), must return answer from LLM."""
+        simple_state = {**BASE_STATE, "search_results": [], "subquestions": [], "user_input": "Test query"}
+        
+        mock_resp = MagicMock()
+        mock_resp.choices[0].message.content = "Direct answer."
+        
+        with patch("agent.llm_client.llm_client.chat.completions.create", return_value=mock_resp) as mock_create:
+            with patch(PATCH_TARGET) as mock_parse:
+                result = synthesizer_node(simple_state)
+                mock_parse.assert_not_called()
+                mock_create.assert_called_once()
+                assert "final_report" in result
+                assert result["final_report"].summary == "Direct answer."
+                assert result["iteration_count"] == simple_state["iteration_count"] + 1
 
     def test_retries_on_transient_failure(self):
         """Fails twice, succeeds on third attempt."""
