@@ -59,9 +59,15 @@ class TestResearchStateDefaults:
             "failed_tasks": [],
             "final_report": None,
             "iteration_count": 0,
+            "planner_iteration_count": 0,
             "query_complexity": "simple",
+            "clarifying_questions": [],
+            "user_feedback": "",
+            "plan_approved": False,
         }
         assert state["iteration_count"] == 0
+        assert state["planner_iteration_count"] == 0
+        assert state["plan_approved"] is False
 
     def test_search_results_reducer_combines_lists(self):
         """operator.add should merge two lists — verify manually."""

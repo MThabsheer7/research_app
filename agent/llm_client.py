@@ -54,7 +54,13 @@ class LLMProvider:
         if use_manual_json:
             # Append schema to the last message
             schema = response_format.model_json_schema()
-            msgs[-1]["content"] += f"\n\nIMPORTANT: You MUST respond ONLY with a raw JSON object matching the following schema:\n{json.dumps(schema)}"
+            prompt_injection = (
+                "\n\nIMPORTANT: You MUST respond ONLY with a raw JSON object structured exactly "
+                "like the following schema. Populate all keys with the actual generated data "
+                "based on your analysis. DO NOT just return the schema definitions.\n"
+                f"{json.dumps(schema)}"
+            )
+            msgs[-1]["content"] += prompt_injection
             
             response = self.client.chat.completions.create(
                 model=self.model,

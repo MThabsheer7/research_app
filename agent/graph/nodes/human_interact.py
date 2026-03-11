@@ -1,5 +1,5 @@
 from agent.graph.state import ResearchState
-from langgraph.types import interrupt
+from langgraph.types import interrupt, Send
 
 def wait_for_user_node(state: ResearchState) -> dict:
     """
@@ -21,10 +21,13 @@ def wait_for_user_node(state: ResearchState) -> dict:
         "subquestions": user_response.get("subquestions", state.get("subquestions", []))
     }
 
-def route_after_interaction(state: ResearchState) -> str:
+def route_after_interaction(state: ResearchState):
     # If the user approved the plan, fan-out to the searchers
     if state.get("plan_approved"):
-        return "dispatch_searchers"
+        return [
+            Send("context_enhancer", {"subquestion": q})
+            for q in state.get("subquestions", [])
+        ]
     
     # Otherwise, the user submitted feedback or answered clarifying questions.
     # Send it back to the planner to rewrite the plan.

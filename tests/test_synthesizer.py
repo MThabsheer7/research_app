@@ -16,7 +16,7 @@ from agent.graph.nodes.synthesizer import (
 )
 from agent.graph.state import SearchResultModel, ReportModel, SentenceModel
 
-PATCH_TARGET = "agent.llm_client.llm_client.beta.chat.completions.parse"
+PATCH_TARGET = "agent.graph.nodes.synthesizer.llm.generate_structured"
 
 
 # ── Fixtures & helpers ────────────────────────────────────────────────────────
@@ -25,17 +25,12 @@ def make_search_result(query: str, chunks: list[str], urls: list[str]) -> Search
     return SearchResultModel(query=query, result=chunks, source_urls=urls)
 
 
-def make_mock_response(summary: str, cited_sentences: list[tuple[str, int]]) -> MagicMock:
+def make_mock_response(summary: str, cited_sentences: list[tuple[str, int]]):
     """Build a fake structured output response matching SynthesizerOutput."""
-    parsed = SynthesizerOutput(
+    return SynthesizerOutput(
         summary=summary,
         sentences=[CitedSentence(sentence=s, ref=r) for s, r in cited_sentences],
     )
-    choice = MagicMock()
-    choice.message.parsed = parsed
-    response = MagicMock()
-    response.choices = [choice]
-    return response
 
 
 SEARCH_RESULT_1 = make_search_result(
@@ -149,14 +144,11 @@ class TestSynthesizerNode:
         """With empty search_results (simple query), must return answer from LLM."""
         simple_state = {**BASE_STATE, "search_results": [], "subquestions": [], "user_input": "Test query"}
         
-        mock_resp = MagicMock()
-        mock_resp.choices[0].message.content = "Direct answer."
-        
-        with patch("agent.llm_client.llm_client.chat.completions.create", return_value=mock_resp) as mock_create:
+        with patch("agent.graph.nodes.synthesizer.llm.generate_text", return_value="Direct answer.") as mock_generate_text:
             with patch(PATCH_TARGET) as mock_parse:
                 result = synthesizer_node(simple_state)
                 mock_parse.assert_not_called()
-                mock_create.assert_called_once()
+                mock_generate_text.assert_called_once()
                 assert "final_report" in result
                 assert result["final_report"].summary == "Direct answer."
                 assert result["iteration_count"] == simple_state["iteration_count"] + 1

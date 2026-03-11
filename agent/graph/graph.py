@@ -4,7 +4,6 @@ from agent.graph.nodes.planner import planner_node, route_planner
 from agent.graph.nodes.human_interact import wait_for_user_node, route_after_interaction
 from agent.graph.nodes.context_enhancer import context_enhancer_node
 from agent.graph.nodes.synthesizer import synthesizer_node, route_synthesizer
-from agent.graph.edges import dispatch_searchers
 
 
 
@@ -32,10 +31,7 @@ research_graph.add_conditional_edges(
 research_graph.add_conditional_edges(
     "wait_for_user", 
     route_after_interaction, 
-    {
-        "dispatch_searchers": dispatch_searchers,
-        "planner": "planner"
-    }
+    ["context_enhancer", "planner"]
 )
 research_graph.add_edge("context_enhancer", "synthesizer")
 research_graph.add_conditional_edges(

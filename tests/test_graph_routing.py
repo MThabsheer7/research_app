@@ -21,18 +21,39 @@ def make_state(
         "failed_tasks": failed_tasks or [],
         "final_report": None,
         "iteration_count": iteration_count,
+        "planner_iteration_count": 0,
         "query_complexity": query_complexity,
+        "clarifying_questions": [],
+        "user_feedback": "",
+        "plan_approved": False,
     }
 
 
 class TestRoutePlanner:
     def test_simple_query_routes_to_synthesizer(self):
         state = make_state(query_complexity="simple")
-        assert route_planner(state) == "simple"
+        assert route_planner(state) == "synthesizer"
 
-    def test_complex_query_routes_to_decomposer(self):
+    def test_complex_query_routes_to_wait_for_user(self):
         state = make_state(query_complexity="complex")
-        assert route_planner(state) == "complex"
+        assert route_planner(state) == "wait_for_user"
+        
+    def test_clarifying_questions_routes_to_wait_for_user(self):
+        state = make_state()
+        state["clarifying_questions"] = ["What do you mean?"]
+        assert route_planner(state) == "wait_for_user"
+        
+    def test_max_planner_iterations_routes_to_synthesizer_if_simple(self):
+        state = make_state(query_complexity="simple")
+        state["planner_iteration_count"] = 3
+        assert route_planner(state) == "synthesizer"
+        
+    def test_max_planner_iterations_routes_to_wait_for_user_if_complex(self):
+        state = make_state(query_complexity="complex")
+        state["planner_iteration_count"] = 3
+        route = route_planner(state)
+        assert route == "wait_for_user"
+        assert state.get("plan_approved") is True
 
 
 class TestRouteSynthesizer:

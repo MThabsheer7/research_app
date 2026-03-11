@@ -8,17 +8,18 @@ os.environ.setdefault("LLM_API_KEY", "test-key")
 
 from agent.graph.nodes.planner import planner_node, PlannerOutput
 
-PATCH_TARGET = "agent.llm_client.llm_client.beta.chat.completions.parse"
+PATCH_TARGET = "agent.graph.nodes.planner.llm.generate_structured"
 
 
-def make_mock_response(complexity: str, reasoning: str):
-    """Build a fake response object that mimics client.beta.parse() output."""
-    parsed = PlannerOutput(query_complexity=complexity, reasoning=reasoning)
-    choice = MagicMock()
-    choice.message.parsed = parsed
-    response = MagicMock()
-    response.choices = [choice]
-    return response
+def make_mock_response(complexity: str, reasoning: str, needs_clarification=False, clarifying_questions=None, subquestions=None):
+    """Build a fake parsed PlannerOutput"""
+    return PlannerOutput(
+        needs_clarification=needs_clarification,
+        clarifying_questions=clarifying_questions or [],
+        query_complexity=complexity,
+        subquestions=subquestions or [],
+        reasoning=reasoning
+    )
 
 
 class TestPlannerNode:
@@ -30,12 +31,24 @@ class TestPlannerNode:
             result = planner_node(self.BASE_STATE)
             assert result["query_complexity"] == "simple"
             assert result["reasoning"] != ""
+            assert result["subquestions"] == []
+            assert result["clarifying_questions"] == []
 
     def test_classifies_complex_query(self):
         with patch(PATCH_TARGET) as mock_parse:
-            mock_parse.return_value = make_mock_response("complex", "requires multi-source research")
+            mock_parse.return_value = make_mock_response("complex", "requires research", subquestions=["1", "2"])
             result = planner_node(self.BASE_STATE)
             assert result["query_complexity"] == "complex"
+            assert result["subquestions"] == ["1", "2"]
+            assert result["planner_iteration_count"] == 1
+            
+    def test_needs_clarification(self):
+        with patch(PATCH_TARGET) as mock_parse:
+            mock_parse.return_value = make_mock_response("complex", "ambiguous", needs_clarification=True, clarifying_questions=["q1?"])
+            result = planner_node(self.BASE_STATE)
+            assert result["clarifying_questions"] == ["q1?"]
+            # Even if complex, subquestions should be empty if clarification is needed
+            assert result["subquestions"] == []
 
     def test_retries_on_transient_failure(self):
         """Fails twice, succeeds on third attempt."""
