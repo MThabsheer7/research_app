@@ -29,6 +29,7 @@ class ResearchState(TypedDict):
     failed_tasks: Annotated[List[FailedTaskModel], operator.add]
     final_report: Optional[ReportModel] = None
     iteration_count: int = 0
+    planner_iteration_count: int = 0
     query_complexity: Literal["simple", "complex"] = "simple"
     reasoning: str = ""
     

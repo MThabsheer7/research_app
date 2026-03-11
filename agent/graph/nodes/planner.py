@@ -59,10 +59,22 @@ def planner_node(state: ResearchState) -> dict:
         "query_complexity": result.query_complexity,
         "reasoning": result.reasoning,
         "clarifying_questions": result.clarifying_questions if result.needs_clarification else [],
-        "subquestions": result.subquestions if result.query_complexity == "complex" and not result.needs_clarification else []
+        "subquestions": result.subquestions if result.query_complexity == "complex" and not result.needs_clarification else [],
+        "planner_iteration_count": state.get("planner_iteration_count", 0) + 1
     }
 
+MAX_PLANNER_ITERATIONS = 3
+
 def route_planner(state: ResearchState) -> str:
+    # Stop asking clarifying questions if we hit the limit
+    if state.get("planner_iteration_count", 0) >= MAX_PLANNER_ITERATIONS:
+        # If it's complex, force it to dispatch searchers using whatever it gathered
+        if state["query_complexity"] == "complex":
+            # Force approval to continue
+            state["plan_approved"] = True
+            return "wait_for_user"
+        return "synthesizer"
+
     # If the planner asks for clarification, route to Human-in-the-Loop Wait Node
     if state.get("clarifying_questions"):
         return "wait_for_user"

@@ -19,6 +19,7 @@ def _build_initial_state(query: str) -> dict:
         "failed_tasks": [],
         "final_report": None,
         "iteration_count": 0,
+        "planner_iteration_count": 0,
         "query_complexity": "simple",
         "reasoning": "",
         "clarifying_questions": [],

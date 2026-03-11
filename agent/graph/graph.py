@@ -1,7 +1,7 @@
 from langgraph.graph import StateGraph, START, END
 from agent.graph.state import ResearchState
 from agent.graph.nodes.planner import planner_node, route_planner
-from agent.graph.nodes.decomposer import decomposer_node
+from agent.graph.nodes.human_interact import wait_for_user_node, route_after_interaction
 from agent.graph.nodes.context_enhancer import context_enhancer_node
 from agent.graph.nodes.synthesizer import synthesizer_node, route_synthesizer
 from agent.graph.edges import dispatch_searchers
@@ -14,7 +14,7 @@ research_graph = StateGraph(ResearchState)
 
 # Add the nodes
 research_graph.add_node("planner", planner_node)
-research_graph.add_node("decomposer", decomposer_node)
+research_graph.add_node("wait_for_user", wait_for_user_node)
 research_graph.add_node("context_enhancer", context_enhancer_node)
 research_graph.add_node("synthesizer", synthesizer_node)
 
@@ -24,12 +24,19 @@ research_graph.add_conditional_edges(
     "planner",
     route_planner,
     {
-        "complex": "decomposer",
-        "simple": "synthesizer"
+        "wait_for_user": "wait_for_user",
+        "synthesizer": "synthesizer"
     }
 )
-# Fan-out: one context_enhancer per subquestion, dispatched via Send()
-research_graph.add_conditional_edges("decomposer", dispatch_searchers, ["context_enhancer"])
+# After user interact, we either dispatch searchers or go back to planner
+research_graph.add_conditional_edges(
+    "wait_for_user", 
+    route_after_interaction, 
+    {
+        "dispatch_searchers": dispatch_searchers,
+        "planner": "planner"
+    }
+)
 research_graph.add_edge("context_enhancer", "synthesizer")
 research_graph.add_conditional_edges(
     "synthesizer",
