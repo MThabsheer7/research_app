@@ -31,3 +31,8 @@ class ResearchState(TypedDict):
     iteration_count: int = 0
     query_complexity: Literal["simple", "complex"] = "simple"
     reasoning: str = ""
+    
+    # Human-in-the-Loop properties
+    clarifying_questions: List[str]  # Agent asks the user for more info
+    user_feedback: str               # User's response/edits to the plan
+    plan_approved: bool              # Whether the user approved the subquestions to execute

@@ -21,6 +21,9 @@ def _build_initial_state(query: str) -> dict:
         "iteration_count": 0,
         "query_complexity": "simple",
         "reasoning": "",
+        "clarifying_questions": [],
+        "user_feedback": "",
+        "plan_approved": False,
     }
 
 
