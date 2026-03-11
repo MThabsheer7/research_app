@@ -4,6 +4,11 @@ Receives a single subquestion via Send(), searches with Tavily,
 then retrieves top-k chunks using BM25 + cosine similarity (RRF).
 """
 import os
+os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
+
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="huggingface_hub")
+
 import numpy as np
 from dotenv import load_dotenv
 from rank_bm25 import BM25Okapi

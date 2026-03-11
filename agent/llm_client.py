@@ -3,6 +3,7 @@ Shared LLM Provider for all agent nodes.
 Allows dynamic switching between Google variants, Local, and OpenAI-compatible endpoints.
 """
 import os
+import json
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -46,13 +47,37 @@ class LLMProvider:
     def generate_structured(self, messages, response_format, max_tokens=1024):
         """Generates structured output parsing into the provided Pydantic model."""
         msgs = self._format_messages(messages)
-        response = self.client.beta.chat.completions.parse(
-            model=self.model,
-            messages=msgs,
-            response_format=response_format,
-            max_tokens=max_tokens
-        )
-        return response.choices[0].message.parsed
+        
+        # Google's Gemma models do not support the native parse endpoint or JSON mode
+        use_manual_json = "gemma" in self.model.lower() or os.environ.get("MANUAL_JSON_PARSING", "false").lower() == "true"
+
+        if use_manual_json:
+            # Append schema to the last message
+            schema = response_format.model_json_schema()
+            msgs[-1]["content"] += f"\n\nIMPORTANT: You MUST respond ONLY with a raw JSON object matching the following schema:\n{json.dumps(schema)}"
+            
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=msgs,
+                max_tokens=max_tokens
+            )
+            
+            content = response.choices[0].message.content
+            
+            # Clean up markdown formatting if the model outputs ```json ... ```
+            content = content.replace("```json", "").replace("```", "").strip()
+            
+            return response_format.model_validate_json(content)
+            
+        else:
+            # Models that natively support structured outputs (GPT-4o, Gemini 1.5, Qwen via vLLM)
+            response = self.client.beta.chat.completions.parse(
+                model=self.model,
+                messages=msgs,
+                response_format=response_format,
+                max_tokens=max_tokens
+            )
+            return response.choices[0].message.parsed
 
     def generate_text(self, messages, max_tokens=1024):
         """Generates raw text format output."""
