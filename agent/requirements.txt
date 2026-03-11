@@ -9,5 +9,6 @@ python-dotenv
 tavily-python
 sentence-transformers
 rank-bm25
-langgraph-checkpoint-sqlite<3.0.0
-aiosqlite
+langgraph-checkpoint-postgres
+psycopg[binary]
+psycopg-pool

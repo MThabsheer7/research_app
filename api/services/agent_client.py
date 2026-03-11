@@ -5,18 +5,10 @@ in the current monorepo it imports the compiled graph directly.
 """
 import uuid
 import os
-import aiosqlite
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from agent.graph.graph import research_graph
 
-# Monkey-patch aiosqlite.Connection to support is_alive()
-# langgraph-checkpoint-sqlite 2.0.11 expects this, but aiosqlite 0.20+ removed it.
-if not hasattr(aiosqlite.Connection, "is_alive"):
-    aiosqlite.Connection.is_alive = lambda self: self._running
-
-_DB_PATH = os.environ.get("CHECKPOINT_DB", "data/checkpoints.db")
-os.makedirs(os.path.dirname(_DB_PATH), exist_ok=True)
-
+_DB_URI = os.environ.get("POSTGRES_URI", "postgresql://postgres:postgres@localhost:5432/postgres")
 
 
 def _build_initial_state(query: str) -> dict:
@@ -40,9 +32,10 @@ async def run_research(query: str) -> tuple[str, dict]:
     thread_id = str(uuid.uuid4())
     config = {
         "recursion_limit": 25,
-        "configurable": {"thread_id": thread_id},  # ← ties this run to a SQLite checkpoint
+        "configurable": {"thread_id": thread_id},  # ← ties this run to a Postgres checkpoint
     }
-    async with AsyncSqliteSaver.from_conn_string(_DB_PATH) as saver:
+    async with AsyncPostgresSaver.from_conn_string(_DB_URI) as saver:
+        await saver.setup()
         app = research_graph.compile(checkpointer=saver)
         state = await app.ainvoke(
             _build_initial_state(query),
@@ -53,11 +46,12 @@ async def run_research(query: str) -> tuple[str, dict]:
 
 async def get_research_state(thread_id: str) -> dict | None:
     """
-    Retrieve the last checkpoint for a given thread from SQLite.
+    Retrieve the last checkpoint for a given thread from Postgres.
     Returns None if the thread_id doesn't exist.
     """
     config = {"configurable": {"thread_id": thread_id}}
-    async with AsyncSqliteSaver.from_conn_string(_DB_PATH) as saver:
+    async with AsyncPostgresSaver.from_conn_string(_DB_URI) as saver:
+        await saver.setup()
         app = research_graph.compile(checkpointer=saver)
         checkpoint = await app.aget_state(config)
         
@@ -75,7 +69,8 @@ async def stream_research(query: str, thread_id: str):
         "recursion_limit": 25,
         "configurable": {"thread_id": thread_id},
     }
-    async with AsyncSqliteSaver.from_conn_string(_DB_PATH) as saver:
+    async with AsyncPostgresSaver.from_conn_string(_DB_URI) as saver:
+        await saver.setup()
         app = research_graph.compile(checkpointer=saver)
         async for step in app.astream(
             _build_initial_state(query),

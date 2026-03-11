@@ -1,11 +1,10 @@
 import pytest
 import uuid
 import os
-import sqlite3
 from unittest.mock import patch, MagicMock
 from agent.graph.state import ReportModel
 
-# Try to clear SQLite path if testing locally
+# Try to clear checkpoint path if testing locally
 from api.services.agent_client import run_research, get_research_state, _build_initial_state
 
 @pytest.mark.asyncio
