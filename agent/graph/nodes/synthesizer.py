@@ -1,5 +1,5 @@
 from agent.graph.state import ResearchState, ReportModel, SentenceModel
-from agent.llm_client import llm_client, LLM_MODEL
+from agent.llm_client import llm
 from pydantic import BaseModel
 from typing import List
 import time
@@ -117,15 +117,13 @@ def synthesizer_node(state: ResearchState) -> dict:
 
     # Simple query path — no search results, we answer directly from LLM knowledge
     if not search_results:
-        response = llm_client.chat.completions.create(
-            model=LLM_MODEL,
+        answer = llm.generate_text(
             messages=[
                 {"role": "system", "content": "You are an expert AI assistant. Please provide a clear, direct, and comprehensive answer to the user's query."},
                 {"role": "user", "content": state["user_input"]}
             ],
             max_tokens=1024,
         )
-        answer = response.choices[0].message.content
         return {
             "final_report": ReportModel(
                 summary=answer,
@@ -144,11 +142,10 @@ def synthesizer_node(state: ResearchState) -> dict:
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            response = llm_client.beta.chat.completions.parse(
-                model=LLM_MODEL,
+            result = llm.generate_structured(
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user",   "content": user_content},
+                    {"role": "user", "content": user_content},
                 ],
                 response_format=SynthesizerOutput,
                 max_tokens=1800,
@@ -159,7 +156,7 @@ def synthesizer_node(state: ResearchState) -> dict:
                 raise
             time.sleep(2 ** attempt)
 
-    result: SynthesizerOutput = response.choices[0].message.parsed
+
 
     # Map ref indices -> real URLs; fall back to "" on hallucinated refs
     sentences = [

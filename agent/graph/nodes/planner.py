@@ -1,5 +1,5 @@
 from agent.graph.state import ResearchState
-from agent.llm_client import llm_client, LLM_MODEL
+from agent.llm_client import llm
 from pydantic import BaseModel
 from typing import Literal
 import time
@@ -108,19 +108,13 @@ def planner_node(state: ResearchState) -> dict:
     
     for attempt in range(max_retries):
         try:
-            response = llm_client.beta.chat.completions.parse(
-                model=LLM_MODEL,
+            result = llm.generate_structured(
                 messages=[
-                    {
-                        "role": "system",
-                        "content": SYSTEM_PROMPT
-                    },
-                    {
-                        "role": "user",
-                        "content": user_input
-                    }
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_input}
                 ],
-                response_format=PlannerOutput
+                response_format=PlannerOutput,
+                max_tokens=1024
             )
             break
         except Exception as e:
@@ -128,8 +122,7 @@ def planner_node(state: ResearchState) -> dict:
                 raise
             time.sleep(2 ** attempt)
 
-    result: PlannerOutput = response.choices[0].message.parsed
-    
+
     return {
         "query_complexity": result.query_complexity,
         "reasoning": result.reasoning
