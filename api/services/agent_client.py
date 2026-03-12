@@ -6,6 +6,7 @@ in the current monorepo it imports the compiled graph directly.
 import uuid
 import os
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.types import Command
 from agent.graph.graph import research_graph
 
 _DB_URI = os.environ.get("POSTGRES_URI", "postgresql://postgres:postgres@localhost:5432/postgres")
@@ -64,20 +65,26 @@ async def get_research_state(thread_id: str) -> dict | None:
     return checkpoint.values
 
 
-async def stream_research(query: str, thread_id: str):
+async def stream_research(query: str | None, thread_id: str, resume_payload: dict | None = None):
     """
     Invoke the research graph asynchronously and yield stream updates.
-    Useful for WebSocket endpoints to provide real-time progression.
+    If resume_payload is provided, it resumes an interrupted graph.
     """
     config = {
         "recursion_limit": 25,
         "configurable": {"thread_id": thread_id},
     }
+    
+    if resume_payload is not None:
+        input_data = Command(resume=resume_payload)
+    else:
+        input_data = _build_initial_state(query or "")
+
     async with AsyncPostgresSaver.from_conn_string(_DB_URI) as saver:
         await saver.setup()
         app = research_graph.compile(checkpointer=saver)
         async for step in app.astream(
-            _build_initial_state(query),
+            input_data,
             config=config,
             stream_mode="updates"
         ):

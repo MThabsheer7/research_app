@@ -29,18 +29,46 @@ async def websocket_research(websocket: WebSocket):
         thread_id = str(uuid.uuid4())
         await websocket.send_json({"type": "start", "thread_id": thread_id, "query": query})
         
-        # Stream updates from the agent
-        async for step in stream_research(query, thread_id):
-            # step is a dict like {'planner': {'query_complexity': 'complex', ...}}
-            for node_name, state_update in step.items():
+        # Loop to handle iterative execution (interrupt -> resume)
+        current_query = query
+        current_resume = None
+        
+        while True:
+            interrupted = False
+            async for step in stream_research(current_query, thread_id, current_resume):
+                # Check for LangGraph interrupt
+                if "__interrupt__" in step:
+                    interrupt_tuple = step["__interrupt__"]
+                    # Usually step["__interrupt__"] is a tuple of (Interrupt, ...)
+                    # We extract the value the node passed to interrupt()
+                    interrupt_value = interrupt_tuple[0].value if interrupt_tuple else {}
+                    
+                    await websocket.send_json({
+                        "type": "interrupt",
+                        "thread_id": thread_id,
+                        "data": interrupt_value
+                    })
+                    
+                    # Wait for the client to send back the edited plan or feedback
+                    # Expected format: {"user_feedback": "...", "plan_approved": bool, "subquestions": [...]}
+                    client_msg = await websocket.receive_text()
+                    feedback_data = json.loads(client_msg)
+                    
+                    current_resume = feedback_data
+                    current_query = None # Clear query so we don't restart from beginning
+                    interrupted = True
+                    break # Break inner stream to restart with Command(resume=...)
                 
-                # We format the payload to send over WS
-                payload = {
-                    "type": "update",
-                    "node": node_name,
-                    "state": _sanitize_state(state_update)
-                }
-                await websocket.send_json(payload)
+                for node_name, state_update in step.items():
+                    payload = {
+                        "type": "update",
+                        "node": node_name,
+                        "state": _sanitize_state(state_update)
+                    }
+                    await websocket.send_json(payload)
+            
+            if not interrupted:
+                break # Graph finished naturally
                 
         await websocket.send_json({"type": "end", "thread_id": thread_id})
         await websocket.close()

@@ -1,31 +1,31 @@
 import React from 'react';
-import { BrainCircuit, SplitSquareHorizontal, Search, PenTool, CheckCircle2, CircleDashed } from 'lucide-react';
+import { BrainCircuit, MessageCircle, Search, PenTool, CheckCircle2 } from 'lucide-react';
 import './ProcessVisualizer.css';
 
 const StepConfig = {
     planner: {
         icon: <BrainCircuit size={20} />,
-        title: "Planner Node",
-        desc: "Analyzing query complexity"
+        title: "Lead Agent",
+        desc: "Strategic Planning"
     },
-    decomposer: {
-        icon: <SplitSquareHorizontal size={20} />,
-        title: "Decomposer Node",
-        desc: "Breaking down into sub-queries"
+    wait_for_user: {
+        icon: <MessageCircle size={20} />,
+        title: "Plan Approval",
+        desc: "Human-in-the-Loop check"
     },
     context_enhancer: {
         icon: <Search size={20} />,
-        title: "Context Enhancer",
-        desc: "Retrieving web sources"
+        title: "Researching",
+        desc: "Gathering live web data"
     },
     synthesizer: {
         icon: <PenTool size={20} />,
-        title: "Synthesizer Node",
-        desc: "Drafting final report"
+        title: "Synthesizer",
+        desc: "Generating cited report"
     }
 };
 
-const STEPS_ORDER = ['planner', 'decomposer', 'context_enhancer', 'synthesizer'];
+const STEPS_ORDER = ['planner', 'wait_for_user', 'context_enhancer', 'synthesizer'];
 
 export default function ProcessVisualizer({ activeNode, state, isStreaming }) {
 
@@ -74,22 +74,25 @@ export default function ProcessVisualizer({ activeNode, state, isStreaming }) {
                                     <div className="step-data glass-panel-inner">
 
                                         {stepId === 'planner' && (
-                                            <div className="data-row">
-                                                <span className="data-label">Complexity:</span>
-                                                <span className={`badge complexity-${stepData.query_complexity}`}>
-                                                    {stepData.query_complexity}
-                                                </span>
+                                            <div className="data-col">
+                                                <div className="data-row">
+                                                    <span className="data-label">Complexity:</span>
+                                                    <span className={`badge complexity-${stepData.query_complexity}`}>
+                                                        {stepData.query_complexity}
+                                                    </span>
+                                                </div>
+                                                {stepData.subquestions && stepData.subquestions.length > 0 && (
+                                                    <div style={{marginTop: '0.5rem'}}>
+                                                        <span className="data-label">Formulated Tasks ({stepData.subquestions.length})</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
 
-                                        {stepId === 'decomposer' && stepData.subquestions && (
-                                            <div className="data-col">
-                                                <span className="data-label">Sub-Questions ({stepData.subquestions.length}):</span>
-                                                <ul className="subq-list">
-                                                    {stepData.subquestions.map((q, i) => (
-                                                        <li key={i}>{q}</li>
-                                                    ))}
-                                                </ul>
+                                        {stepId === 'wait_for_user' && (
+                                            <div className="data-row">
+                                                <span className="data-label">Status:</span>
+                                                <span className="emphasis">Awaiting Input...</span>
                                             </div>
                                         )}
 

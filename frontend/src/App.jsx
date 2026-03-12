@@ -6,6 +6,7 @@ import './App.css';
 // Components (We will create these in the next step)
 import ProcessVisualizer from './components/ProcessVisualizer';
 import ReportView from './components/ReportView';
+import PlanApproval from './components/PlanApproval';
 
 function App() {
   const [query, setQuery] = useState('');
@@ -13,8 +14,11 @@ function App() {
   const {
     startResearch,
     cancelResearch,
+    sendFeedback,
     isConnecting,
     isStreaming,
+    isWaitingForUser,
+    interruptData,
     error,
     activeNode,
     threadId,
@@ -114,6 +118,18 @@ function App() {
 
         </main>
       </div>
+
+      {isWaitingForUser && (
+        <PlanApproval 
+          data={interruptData} 
+          onApproved={(feedback) => {
+            sendFeedback(feedback);
+          }}
+          onFeedback={(feedback) => {
+            sendFeedback({ ...feedback, plan_approved: false });
+          }}
+        />
+      )}
     </>
   );
 }

@@ -3,6 +3,8 @@ import { useState, useRef, useCallback } from 'react';
 export function useResearchStream() {
     const [isConnecting, setIsConnecting] = useState(false);
     const [isStreaming, setIsStreaming] = useState(false);
+    const [isWaitingForUser, setIsWaitingForUser] = useState(false);
+    const [interruptData, setInterruptData] = useState(null);
     const [error, setError] = useState(null);
 
     // State accumulation
@@ -26,6 +28,8 @@ export function useResearchStream() {
         setEnhancerState(null);
         setSynthesizerState(null);
         setActiveNode(null);
+        setIsWaitingForUser(false);
+        setInterruptData(null);
 
         setIsConnecting(true);
         setIsStreaming(true);
@@ -33,7 +37,7 @@ export function useResearchStream() {
         // Add error handling if WS connection fails outright
         try {
             // Connect to the FastAPI WebSocket endpoint
-            const ws = new WebSocket('ws://localhost:8001/ws/research');
+            const ws = new WebSocket('ws://localhost:8000/ws/research');
             wsRef.current = ws;
 
             ws.onopen = () => {
@@ -87,6 +91,12 @@ export function useResearchStream() {
                         }
                         break;
 
+                    case 'interrupt':
+                        setInterruptData(data.data);
+                        setIsWaitingForUser(true);
+                        setActiveNode('wait_for_user');
+                        break;
+
                     case 'end':
                         setIsStreaming(false);
                         setActiveNode('done');
@@ -134,14 +144,28 @@ export function useResearchStream() {
             wsRef.current = null;
         }
         setIsStreaming(false);
+        setIsWaitingForUser(false);
         setActiveNode(null);
+    }, []);
+
+    const sendFeedback = useCallback((feedback) => {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify(feedback));
+            setIsWaitingForUser(false);
+            setInterruptData(null);
+        } else {
+            setError("Cannot send feedback: connection is not open.");
+        }
     }, []);
 
     return {
         startResearch,
         cancelResearch,
+        sendFeedback,
         isConnecting,
         isStreaming,
+        isWaitingForUser,
+        interruptData,
         error,
         activeNode,
         threadId,
