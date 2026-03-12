@@ -5,7 +5,17 @@ in the current monorepo it imports the compiled graph directly.
 """
 import uuid
 import os
+import sys
+import asyncio
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+
+# Psycopg requires SelectorEventLoop on Windows for async mode
+if sys.platform == "win32":
+    try:
+        if not isinstance(asyncio.get_event_loop_policy(), asyncio.WindowsSelectorEventLoopPolicy):
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    except Exception:
+        pass
 from langgraph.types import Command
 from agent.graph.graph import research_graph
 

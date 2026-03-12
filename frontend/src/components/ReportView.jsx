@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import ReactMarkdown from 'react-markdown';
-import { FileText, ExternalLink, Loader2 } from 'lucide-react';
+import { FileText, Loader2 } from 'lucide-react';
 import './ReportView.css';
 
 export default function ReportView({ synthesizerState, isStreaming, activeNode }) {
@@ -15,40 +15,8 @@ export default function ReportView({ synthesizerState, isStreaming, activeNode }
         );
     }
 
-    // Once synthesizer has state, compile the markdown
     const report = synthesizerState?.final_report;
-
     if (!report) return null;
-
-    // We construct final markdown representation from the chunks and summary
-    const markdownText = useMemo(() => {
-        let md = '';
-
-        // Add summary if it exists
-        if (report.summary) {
-            md += `### Executive Summary\n\n${report.summary}\n\n---\n\n`;
-        }
-
-        // Add sentences
-        if (report.sentences && report.sentences.length > 0) {
-            md += `### Findings\n\n`;
-            report.sentences.forEach(s => {
-                // Find if this sentence has a citation
-                if (s.source_url) {
-                    // Check if markdown link already exists in the sentence
-                    if (s.sentence.includes('](')) {
-                        md += `${s.sentence}\n\n`;
-                    } else {
-                        md += `${s.sentence} <sup>[source](${s.source_url})</sup>\n\n`;
-                    }
-                } else {
-                    md += `${s.sentence}\n\n`;
-                }
-            });
-        }
-
-        return md;
-    }, [report]);
 
     return (
         <div className="report-view glass-panel">
@@ -64,21 +32,37 @@ export default function ReportView({ synthesizerState, isStreaming, activeNode }
             </div>
 
             <div className="report-content markdown-body">
-                {markdownText ? (
-                    <ReactMarkdown
-                        components={{
-                            a: ({ node, ...props }) => (
-                                <a target="_blank" rel="noopener noreferrer" {...props}>
-                                    {props.children}
-                                    {props.children === 'source' ? null : <ExternalLink size={12} className="inline-icon" />}
-                                </a>
-                            )
-                        }}
-                    >
-                        {markdownText}
-                    </ReactMarkdown>
-                ) : (
-                    <p className="placeholder-text">Drafting in progress...</p>
+                {/* Summary - safe to use ReactMarkdown since it's just text */}
+                {report.summary && (
+                    <div className="summary-section">
+                        <h3>Executive Summary</h3>
+                        <ReactMarkdown>{report.summary}</ReactMarkdown>
+                        <hr />
+                    </div>
+                )}
+
+                {/* Findings: render as plain JSX so <sup> citations render as real HTML */}
+                {report.sentences && report.sentences.length > 0 && (
+                    <div className="findings-section">
+                        <h3>Findings</h3>
+                        {report.sentences.map((s, i) => (
+                            <p key={i} className="finding-sentence">
+                                {s.sentence}
+                                {s.source_url && (
+                                    <sup>
+                                        <a
+                                            href={s.source_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            title={s.source_url}
+                                        >
+                                            source
+                                        </a>
+                                    </sup>
+                                )}
+                            </p>
+                        ))}
+                    </div>
                 )}
             </div>
         </div>
