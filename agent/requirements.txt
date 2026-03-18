@@ -12,3 +12,4 @@ rank-bm25
 langgraph-checkpoint-postgres
 psycopg[binary]
 psycopg-pool
+fastapi
