@@ -36,8 +36,10 @@ export function useResearchStream() {
 
         // Add error handling if WS connection fails outright
         try {
-            // Connect to the FastAPI WebSocket endpoint
-            const ws = new WebSocket('ws://localhost:8001/ws/research');
+            // Connect to the FastAPI WebSocket endpoint gracefully avoiding strict localhost
+            const wsHost = window.location.hostname;
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const ws = new WebSocket(`${wsProtocol}//${wsHost}:8001/ws/research`);
             wsRef.current = ws;
 
             ws.onopen = () => {

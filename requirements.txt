@@ -1,0 +1,22 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+fastapi
+uvicorn[standard]
+python-dotenv
+langgraph
+langgraph-checkpoint
+langchain-core
+pydantic
+typing-extensions
+pytest
+pytest-asyncio        
+anyio                 
+httpx                 
+openai
+tavily-python
+torch
+sentence-transformers
+rank-bm25
+langgraph-checkpoint-postgres
+psycopg[binary]
+psycopg-pool
